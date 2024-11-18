@@ -19,11 +19,11 @@ retail_rules = [
 airline_rules = []
 
 
-airline_policy_path = "tau-bench/tau_bench/envs/airline/wiki.md"
+airline_policy_path = "tau_bench/envs/airline/wiki.md"
 airline_policy = open(airline_policy_path, "r").read()
 
 
-retail_policy_path = "tau-bench/tau_bench/envs/retail/wiki.md"
+retail_policy_path = "tau_bench/envs/retail/wiki.md"
 retail_policy = open(retail_policy_path, "r").read()
 
 
