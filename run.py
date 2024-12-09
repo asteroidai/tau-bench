@@ -285,7 +285,7 @@ def main():
     )
     parser.add_argument("--start-index", type=int, default=0)
     parser.add_argument("--end-index", type=int, default=-1, help="Run all tasks if -1")
-    parser.add_argument("--task-ids", type=int, nargs="+", default=[54,55,5], help="(Optional) run only the tasks with the given IDs") #TODO: remove default , default=[3] [30, 31, 32, 33, 34, 35]
+    parser.add_argument("--task-ids", type=int, nargs="+", default=[54], help="(Optional) run only the tasks with the given IDs") #TODO: remove default , default=[3] [30, 31, 32, 33, 34, 35]
     parser.add_argument("--log-dir", type=str, default=f"results-{ENVIRONMENT}")
     parser.add_argument(
         "--max-concurrency",
