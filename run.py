@@ -17,19 +17,23 @@ from tau_bench.types import EnvRunResult
 from litellm import provider_list
 from tau_bench.envs.user import UserStrategy
 from entropy_labs.supervision.config import supervision_config
-from entropy_labs.sentinel_api_client.sentinel_api_client import Client
 from entropy_labs.api import (
     register_project,
     create_run,
     register_task,
-    register_tools_and_supervisors
+    register_tools_and_supervisors,
+    submit_run_status,
+    update_run_result
 )
+from entropy_labs.sentinel_api_client.sentinel_api_client.models.status import Status
 
 import pkgutil
 import importlib
 import inspect
 
 from tau_bench.envs.tool import Tool
+
+ENVIRONMENT = "retail" #"airline"
 
 
 def run(
@@ -81,9 +85,9 @@ def run(
             print(f"Running task {idx}")
             # Create an execution for the task
             # Register the project and create a run
-            project_id = register_project(f"Tau Bench Retail Task {idx}", "http://localhost:8080")
-            task_id = register_task(project_id=project_id, task_name=f"Tau Bench Retail Task {idx}")
-            run_id = create_run(project_id=project_id, task_id=task_id, run_name=f"Tau Bench Retail Task {idx}")
+            project_id = register_project(f"Tau Bench", "http://localhost:8080")
+            task_id = register_task(project_id=project_id, task_name=f"Tau Bench {ENVIRONMENT} Task {idx}")
+            run_id = create_run(project_id=project_id, task_id=task_id, run_name=f"Tau Bench {ENVIRONMENT} Task {idx}")
             supervision_config.run_id = run_id
 
             # Register all tools and supervisors
@@ -94,6 +98,7 @@ def run(
                     env=isolated_env,
                     task_index=idx,
                 )
+                print(f"Result: Reward={res.reward} Info={res.info}")
                 result = EnvRunResult(
                     task_id=idx,
                     reward=res.reward,
@@ -101,6 +106,12 @@ def run(
                     traj=res.messages,
                     trial=i,
                 )
+                # send the result to the sentinel API
+                status = Status.COMPLETED
+                submit_run_status(run_id, status)
+                # send the result to the supervisor
+                run_outcome = "passed" if res.reward == 1 else "failed"
+                update_run_result(run_id, run_outcome, supervision_config.client)
             except Exception as e:
                 result = EnvRunResult(
                     task_id=idx,
@@ -225,7 +236,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--num-trials", type=int, default=1)
     parser.add_argument(
-        "--env", type=str, choices=["retail", "airline"], default="retail"
+        "--env", type=str, choices=["retail", "airline"], default=ENVIRONMENT
     )
     parser.add_argument(
         "--model",
@@ -274,8 +285,8 @@ def main():
     )
     parser.add_argument("--start-index", type=int, default=0)
     parser.add_argument("--end-index", type=int, default=-1, help="Run all tasks if -1")
-    parser.add_argument("--task-ids", type=int, nargs="+", default=[16], help="(Optional) run only the tasks with the given IDs") #TODO: remove default , default=[3]
-    parser.add_argument("--log-dir", type=str, default="results")
+    parser.add_argument("--task-ids", type=int, nargs="+", default=[54,55,5], help="(Optional) run only the tasks with the given IDs") #TODO: remove default , default=[3] [30, 31, 32, 33, 34, 35]
+    parser.add_argument("--log-dir", type=str, default=f"results-{ENVIRONMENT}")
     parser.add_argument(
         "--max-concurrency",
         type=int,
