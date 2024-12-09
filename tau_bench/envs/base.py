@@ -21,39 +21,104 @@ from entropy_labs.supervision.decorators import supervise
 from entropy_labs.supervision.supervisors import human_supervisor, llm_supervisor
 
 MULTIPLE_REQUESTS_SYSTEM_PROMPT = """
-Your goal is to ensure that all user requests are addressed and resolved. 
-- Approve if the customer support agent is actively working on or has resolved all requests.
-- Reject if the agent attempts to conclude the conversation before all requests are resolved, providing a detailed explanation.
+Your goal is to ensure that all user requests are addressed and resolved. Do not finish the conversation before all requests are resolved. If not sure, ask the user if there's anything else they need help with. 
+
+For each user request, ensure:
+- You confirm the resolution of the request explicitly.
+- If a request cannot be fulfilled, provide a clear explanation and offer alternatives if possible.
+- In case the user asks for multiple things, make sure to address all of them. For example, if the user asks for a product refund and refund amount, make sure to respond with both information.
+
+DECISION CRITERIA:
+1. **Approve**:
+   - The customer support agent is actively working on or has resolved all requests, including providing explanations for any unfulfilled requests.
+
+2. **Reject**:
+   - The agent attempts to conclude the conversation before all requests are resolved or fails to provide necessary explanations for unfulfilled requests.
+   - Provide a detailed explanation.
 """
 MULTIPLE_REQUESTS_INSTRUCTIONS = """
-- Approve if all requests are being addressed or have been resolved.
-- Reject if the conversation is prematurely concluded, providing a detailed explanation.
+- Approve if all requests are being addressed or have been resolved, including explanations for any unfulfilled requests.
+- Reject if the conversation is prematurely concluded or if explanations for unfulfilled requests are missing, providing a detailed explanation.
+- **Do not modify the agent's actions yourself.**
 """
 
-multiple_requests_supervisor = llm_supervisor(system_prompt=MULTIPLE_REQUESTS_SYSTEM_PROMPT,
-                                              instructions=MULTIPLE_REQUESTS_INSTRUCTIONS,
-                                              supervisor_name="Multiple Requests Supervisor",
-                                              description="Supervisor that checks all user requests have been solved.",
-                                              include_context=True)
+multiple_requests_supervisor = llm_supervisor(
+    system_prompt=MULTIPLE_REQUESTS_SYSTEM_PROMPT,
+    instructions=MULTIPLE_REQUESTS_INSTRUCTIONS,
+    supervisor_name="Multiple Requests Supervisor",
+    description="Supervisor that checks all user requests have been solved.",
+    include_context=True
+)
 
 CORRECT_INFORMATION_PRESENTED_TO_USER_SYSTEM_PROMPT = """
-Your goal is to verify that the customer support agent is providing accurate information to the user.
-- Approve if the information presented is correct.
-- Reject if the information is incorrect, providing a detailed explanation.
-- Escalate if unsure, providing a detailed explanation.
+Your goal is to verify that the customer support agent is providing accurate and complete information to the user. You need to ensure that all the user's requests have been addressed and that the information provided is correct.
+**You should never modify the agent's actions yourself.**
+
+DECISION CRITERIA:
+1. **Approve**:
+   - The information presented by the agent is accurate and complete.
+   - All user requests have been addressed satisfactorily.
+
+2. **Reject**:
+   - The information presented by the agent is inaccurate or incomplete.
+   - Provide a detailed explanation of what was incorrect or missing.
 """
+
 CORRECT_INFORMATION_PRESENTED_TO_USER_INSTRUCTIONS = """
-- Approve if the information is correct.
-- Reject if the information is incorrect, providing a detailed explanation.
-- Escalate if unsure, providing a detailed explanation.
+DECISION PROCESS:
+1. Review the information provided by the customer support agent.
+2. Check if all user requests have been addressed.
+3. Verify the accuracy and completeness of the information.
+4. **Do not modify the agent's actions yourself.**
+
+OUTCOMES:
+- **Approve**: If the information is correct and all requests are addressed.
+- **Reject**: If any information is incorrect or requests are not fully addressed. Provide specific details on what is wrong.
 """
 
-correct_information_presented_to_user_supervisor = llm_supervisor(system_prompt=CORRECT_INFORMATION_PRESENTED_TO_USER_SYSTEM_PROMPT,
-                                                                  instructions=CORRECT_INFORMATION_PRESENTED_TO_USER_INSTRUCTIONS,
-                                                                  supervisor_name="Correct Information Presented To User Supervisor",
-                                                                  description="Supervisor that checks if the agent is presenting correct information to the user.",
-                                                                  include_context=True)
+correct_information_presented_to_user_supervisor = llm_supervisor(
+    system_prompt=CORRECT_INFORMATION_PRESENTED_TO_USER_SYSTEM_PROMPT,
+    instructions=CORRECT_INFORMATION_PRESENTED_TO_USER_INSTRUCTIONS,
+    supervisor_name="Correct Information Presented To User Supervisor",
+    description="Supervisor that checks if the agent is presenting correct information to the user.",
+    include_context=True
+)
 
+# Define a new supervisor for ambiguous item references
+AMBIGUOUS_ITEM_SYSTEM_PROMPT = """
+Your goal is to ensure that when a user mentions an item that could refer to multiple entries, the assistant requests clarification before proceeding. For example, if the user wants to return a "vacuum cleaner" and there are multiple vacuum cleaners in the order, the assistant should ask for clarification on which specific vacuum cleaner the user is referring to.
+
+For any user request involving an item:
+- If multiple items with the same name or description exist in the user's order, prompt the user to specify which one they mean by asking for the item ID or any distinguishing feature.
+- Do not assume or proceed with an action involving an ambiguous item without clarification.
+- After the user clarifies, continue assisting them with the specific item.
+
+DECISION CRITERIA:
+1. **Approve**:
+   - The assistant correctly identifies the ambiguity and asks for clarification by referencing item IDs or unique features.
+   - The assistant proceeds appropriately after receiving clarification.
+
+2. **Reject**:
+   - The assistant does not ask for clarification when multiple items with the same name or description are present.
+   - The assistant assumes the wrong item or proceeds without confirming.
+   - Provide a detailed explanation of the oversight.
+
+"""
+
+AMBIGUOUS_ITEM_INSTRUCTIONS = """
+- **Approve** if the assistant seeks clarification when multiple items with the same name or description are present in the user's order.
+- **Reject** if the assistant fails to request clarification and proceeds incorrectly.
+- **Do not modify the assistant's actions yourself.**
+
+"""
+
+ambiguous_item_supervisor = llm_supervisor(
+    system_prompt=AMBIGUOUS_ITEM_SYSTEM_PROMPT,
+    instructions=AMBIGUOUS_ITEM_INSTRUCTIONS,
+    supervisor_name="Ambiguous Item Supervisor",
+    description="Supervisor that ensures assistants ask for clarification when multiple items match the user's description.",
+    include_context=True
+)
 
 
 ToHashable = Union[
@@ -75,7 +140,10 @@ def to_hashable(item: ToHashable) -> Hashable:
 @supervise(
         supervision_functions=[
             # [human_supervisor()]
-            [correct_information_presented_to_user_supervisor, human_supervisor()]
+            [correct_information_presented_to_user_supervisor],
+            [multiple_requests_supervisor],
+            [ambiguous_item_supervisor]
+             #, human_supervisor()]
         ],
         ignored_attributes=["self"]
     )
