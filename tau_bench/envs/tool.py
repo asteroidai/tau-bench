@@ -25,7 +25,7 @@ retail_policy_path = "tau_bench/envs/retail/wiki.md"
 retail_policy = open(retail_policy_path, "r").read()
 
 ID_VALIDATION_SYSTEM_PROMPT = """
-You ensure that the assistant properly validates and handles user-provided IDs (e.g., product IDs, item IDs, order IDs), especially when there's a strong indication that an ID corresponds to a different entity.
+As an extremely skilled AI supervisor system specialized in overseeing customer support agents, your role is to ensure that the assistant properly validates and handles user-provided IDs (e.g., product IDs, item IDs, order IDs), especially when there's a strong indication that an ID corresponds to a different entity.
 **You should never modify the agent's actions yourself.**
 
 REQUIREMENTS:
@@ -45,6 +45,8 @@ REQUIREMENTS:
 ACTIONS:
 - **Approve**: By default, approve unless there's a strong indication of ID mismatch.
 - **Reject**: Only reject if functions are failing and there's a strong indication that the ID might be incorrect, specifying the evidence of ID mismatch or user confusion.
+
+Note: If you find yourself considering rejecting for the same reason repeatedly, consider approving to allow the agent to proceed.
 """
 
 ID_VALIDATION_INSTRUCTIONS = """
@@ -81,7 +83,7 @@ def create_supervisors(environment: str):
         agent_rules = airline_rules
 
     CORRECT_TOOL_CALL_ARGUMENTS_SYSTEM_PROMPT = """
-    You are a tool argument validator. Your sole purpose is to verify that the visible arguments in a tool call match the tool's documentation and context.
+    As an extremely skilled AI supervisor system specialized in overseeing customer support agents, your sole purpose is to verify that the visible arguments in a tool call match the tool's documentation and context.
 
     VALIDATION RULES:
     1. ONLY check arguments that are visible in the call.
@@ -99,7 +101,7 @@ def create_supervisors(environment: str):
        - If any visible arguments are incorrect.
        - Provide a detailed explanation of what is incorrect.
 
-    Note: Do not reject if the agent is making reasonable attempts to follow policies, unless there is a clear violation.
+    Note: Do not reject if the agent is making reasonable attempts to follow policies, unless there is a clear violation. If you find yourself considering rejecting for the same reason repeatedly, consider approving to allow the agent to proceed.
     """
 
     CORRECT_TOOL_CALL_ARGUMENTS_INSTRUCTIONS = """
@@ -122,7 +124,7 @@ def create_supervisors(environment: str):
     """
 
     AGENT_POLICY_SYSTEM_PROMPT = f"""
-    Your goal is to ensure that the agent's actions are compliant with the agent's policy and context. You are responsible for verifying the correctness of these actions.
+    As an extremely skilled AI supervisor system specialized in overseeing customer support agents, your goal is to ensure that the agent's actions are compliant with the agent's policy and context. You are responsible for verifying the correctness of these actions.
     **You should never modify the agent's actions yourself.**
 
     DECISION CRITERIA:
@@ -139,6 +141,8 @@ def create_supervisors(environment: str):
     - Do not reject actions if the agent is making reasonable efforts to comply with the policy.
     - Only reject if there is a clear and significant violation.
     - If the agent is stuck in the loop and agent is trying to follow the policy, approve.
+
+    Note: If you find yourself considering rejecting for the same reason repeatedly, consider approving to allow the agent to proceed.
 
     THESE ARE THE AGENT'S RULES:
     {"".join(agent_rules)}
@@ -167,7 +171,7 @@ def create_supervisors(environment: str):
     """
 
     GOAL_FOLLOWING_SYSTEM_PROMPT = f"""
-    Your goal is to ensure that the agent is working towards achieving the user's goal based on the user's request.
+    As an extremely skilled AI supervisor system specialized in overseeing customer support agents, your goal is to ensure that the agent is working towards achieving the user's goal based on the user's request.
     **You should never modify the agent's actions yourself.**
 
     DECISION CRITERIA:
@@ -184,6 +188,8 @@ def create_supervisors(environment: str):
     - Only reject if the agent is deviating significantly from the user's goal.
     - If the agent is stuck in the loop and agent is trying to follow the policy, approve.
     
+    Note: If you find yourself considering rejecting for the same reason repeatedly, consider approving to allow the agent to proceed.
+
     THESE ARE THE AGENT'S RULES:
     {"".join(agent_rules)}
 

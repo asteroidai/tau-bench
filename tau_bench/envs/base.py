@@ -21,7 +21,7 @@ from entropy_labs.supervision.decorators import supervise
 from entropy_labs.supervision.supervisors import human_supervisor, llm_supervisor
 
 MULTIPLE_REQUESTS_SYSTEM_PROMPT = """
-Your goal is to ensure that all user requests are addressed and resolved. Do not finish the conversation before all requests are resolved. If not sure, ask the user if there's anything else they need help with. 
+As an extremely skilled AI supervisor system for customer support, your goal is to ensure that all user requests are addressed and resolved. Do not finish the conversation before all requests are resolved. If not sure, ask the user if there's anything else they need help with. 
 
 For each user request, ensure:
 - You confirm the resolution of the request explicitly.
@@ -33,8 +33,9 @@ DECISION CRITERIA:
    - The customer support agent is actively working on or has resolved all requests, including providing explanations for any unfulfilled requests.
 
 2. **Reject**:
-   - The agent attempts to conclude the conversation before all requests are resolved or fails to provide necessary explanations for unfulfilled requests.
-   - Provide a detailed explanation.
+   - Only reject if you are quite certain that the agent attempts to conclude the conversation before all requests are resolved or fails to provide necessary explanations for unfulfilled requests.
+   - Provide a detailed explanation of what is against the policy.
+   - Encourage the agent to use the "think tool" if the same action is rejected multiple times in a row.
 """
 MULTIPLE_REQUESTS_INSTRUCTIONS = """
 - Approve if all requests are being addressed or have been resolved, including explanations for any unfulfilled requests.
@@ -51,7 +52,7 @@ multiple_requests_supervisor = llm_supervisor(
 )
 
 CORRECT_INFORMATION_PRESENTED_TO_USER_SYSTEM_PROMPT = """
-Your goal is to verify that the customer support agent is providing accurate and complete information to the user. You need to ensure that all the user's requests have been addressed and that the information provided is correct.
+As an extremely skilled AI supervisor system for customer support, your goal is to verify that the customer support agent is providing accurate and complete information to the user. You need to ensure that all the user's requests have been addressed and that the information provided is correct.
 **You should never modify the agent's actions yourself.**
 
 DECISION CRITERIA:
@@ -60,8 +61,9 @@ DECISION CRITERIA:
    - All user requests have been addressed satisfactorily.
 
 2. **Reject**:
-   - The information presented by the agent is inaccurate or incomplete.
-   - Provide a detailed explanation of what was incorrect or missing.
+   - Only reject if you are quite certain that the information presented by the agent is inaccurate or incomplete.
+   - Provide a detailed explanation of what is incorrect or missing and how it is against the policy.
+   - Encourage the agent to use the "think tool" if the same action is rejected multiple times in a row.
 """
 
 CORRECT_INFORMATION_PRESENTED_TO_USER_INSTRUCTIONS = """
@@ -86,7 +88,7 @@ correct_information_presented_to_user_supervisor = llm_supervisor(
 
 # Define a new supervisor for ambiguous item references
 AMBIGUOUS_ITEM_SYSTEM_PROMPT = """
-Your goal is to ensure that when a user mentions an item that could refer to multiple entries, the assistant requests clarification before proceeding. For example, if the user wants to return a "vacuum cleaner" and there are multiple vacuum cleaners in the order, the assistant should ask for clarification on which specific vacuum cleaner the user is referring to.
+As an extremely skilled AI supervisor system for customer support, your goal is to ensure that when a user mentions an item that could refer to multiple entries, the assistant requests clarification before proceeding. For example, if the user wants to return a "vacuum cleaner" and there are multiple vacuum cleaners in the order, the assistant should ask for clarification on which specific vacuum cleaner the user is referring to.
 
 For any user request involving an item:
 - If multiple items with the same name or description exist in the user's order, prompt the user to specify which one they mean by asking for the item ID or any distinguishing feature.
@@ -99,17 +101,15 @@ DECISION CRITERIA:
    - The assistant proceeds appropriately after receiving clarification.
 
 2. **Reject**:
-   - The assistant does not ask for clarification when multiple items with the same name or description are present.
-   - The assistant assumes the wrong item or proceeds without confirming.
-   - Provide a detailed explanation of the oversight.
-
+   - Only reject if you are quite certain that the assistant does not ask for clarification when multiple items with the same name or description are present.
+   - Provide a detailed explanation of the oversight and how it is against the policy.
+   - Encourage the assistant to use the "think tool" if the same action is rejected multiple times in a row.
 """
 
 AMBIGUOUS_ITEM_INSTRUCTIONS = """
 - **Approve** if the assistant seeks clarification when multiple items with the same name or description are present in the user's order.
 - **Reject** if the assistant fails to request clarification and proceeds incorrectly.
 - **Do not modify the assistant's actions yourself.**
-
 """
 
 ambiguous_item_supervisor = llm_supervisor(
